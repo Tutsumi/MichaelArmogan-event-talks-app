@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Hub - Live Updates & Sharing</title>
+    <!-- Meta tags for SEO -->
+    <meta name="description" content="Track Google Cloud BigQuery release notes in real-time. Select, filter, and easily share updates on X/Twitter with our interactive hub.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dark-theme">
+    <!-- Main App Wrapper -->
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <div class="logo-icon">
+                    <i data-lucide="database" class="icon-glow"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>BigQuery <span>Release Hub</span></h1>
+                    <p class="subtitle">Track, filter, and share Google Cloud BigQuery updates</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div class="sync-status" id="sync-status">
+                    <span class="status-indicator online"></span>
+                    <span id="last-updated-text">Updating...</span>
+                </div>
+                <button id="btn-refresh" class="btn btn-primary btn-refresh" aria-label="Refresh release notes">
+                    <i data-lucide="refresh-cw" id="refresh-icon"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Search, Filter & Summary Bar -->
+        <section class="control-panel">
+            <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="search-input" placeholder="Search updates (e.g. Gemini, partition, JSON)..." aria-label="Search updates">
+                <button id="btn-clear-search" class="clear-search-btn" style="display: none;">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div class="filter-group">
+                <span class="filter-label">Filter by type:</span>
+                <div class="filter-tags" id="type-filters">
+                    <button class="filter-tag active" data-type="all">All</button>
+                    <button class="filter-tag" data-type="Feature">Features</button>
+                    <button class="filter-tag" data-type="Changed">Changes</button>
+                    <button class="filter-tag" data-type="Fixed">Fixes</button>
+                    <button class="filter-tag" data-type="Deprecated">Deprecated</button>
+                    <button class="filter-tag" data-type="Other">Other</button>
+                </div>
+            </div>
+
+            <div class="sort-box">
+                <i data-lucide="arrow-up-down"></i>
+                <select id="sort-select" aria-label="Sort updates">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- Warning Banner (Conditional) -->
+            <div id="warning-banner" class="warning-banner" style="display: none;">
+                <i data-lucide="alert-triangle"></i>
+                <span id="warning-text"></span>
+                <button id="btn-close-warning" class="close-warning"><i data-lucide="x"></i></button>
+            </div>
+
+            <!-- Loading Shimmer State -->
+            <div id="loading-state" class="loading-state">
+                <div class="shimmer-card"></div>
+                <div class="shimmer-card"></div>
+                <div class="shimmer-card"></div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <div class="empty-icon">
+                    <i data-lucide="search-code"></i>
+                </div>
+                <h3>No updates found</h3>
+                <p>We couldn't find any release notes matching your search or filters. Try adjusting your query!</p>
+                <button id="btn-reset-filters" class="btn btn-secondary">Reset Filters</button>
+            </div>
+
+            <!-- Timeline/Feed Container -->
+            <div id="updates-feed" class="updates-feed" style="display: none;">
+                <!-- Dynamically injected cards -->
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>BigQuery Release Hub &copy; 2026. Data fetched from the official Google Cloud BigQuery RSS/Atom Feed.</p>
+        </footer>
+    </div>
+
+    <!-- Slide-out Drawer: Tweet Composer -->
+    <div id="tweet-drawer" class="tweet-drawer">
+        <div class="drawer-overlay" id="drawer-overlay"></div>
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <div class="drawer-title">
+                    <i data-lucide="twitter" class="twitter-icon"></i>
+                    <h2>Tweet Composer</h2>
+                </div>
+                <button id="btn-close-drawer" class="close-btn" aria-label="Close composer">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div class="drawer-body">
+                <div class="selected-note-preview">
+                    <span class="preview-label">Selected Update Reference:</span>
+                    <div class="preview-card">
+                        <div class="preview-meta">
+                            <span id="preview-type-badge" class="type-badge">Feature</span>
+                            <span id="preview-date" class="preview-date">June 15, 2026</span>
+                        </div>
+                        <p id="preview-text-snippet" class="preview-snippet">...</p>
+                    </div>
+                </div>
+
+                <div class="tweet-composer-card">
+                    <div class="composer-header">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop&crop=faces" alt="Avatar placeholder" class="user-avatar">
+                        <div class="user-info">
+                            <span class="user-name">GCP Explorer</span>
+                            <span class="user-handle">@gcpexplorer</span>
+                        </div>
+                    </div>
+                    
+                    <div class="composer-textarea-wrapper">
+                        <textarea id="tweet-textarea" rows="6" placeholder="What's happening?"></textarea>
+                    </div>
+
+                    <div class="composer-footer">
+                        <div class="char-counter-container">
+                            <svg class="progress-ring" width="24" height="24">
+                                <circle class="progress-ring__bg" stroke="#2f3336" stroke-width="2" fill="transparent" r="10" cx="12" cy="12"/>
+                                <circle class="progress-ring__circle" id="char-progress-circle" stroke="#1d9bf0" stroke-width="2.5" fill="transparent" r="10" cx="12" cy="12"/>
+                            </svg>
+                            <span id="char-counter">280</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hashtag Helpers -->
+                <div class="hashtag-helper">
+                    <span class="helper-label">Quick Hashtags:</span>
+                    <div class="hashtag-tags">
+                        <button class="hashtag-tag" data-tag="#BigQuery">#BigQuery</button>
+                        <button class="hashtag-tag" data-tag="#GoogleCloud">#GoogleCloud</button>
+                        <button class="hashtag-tag" data-tag="#GCP">#GCP</button>
+                        <button class="hashtag-tag" data-tag="#DataEngineering">#DataEngineering</button>
+                        <button class="hashtag-tag" data-tag="#GenerativeAI">#GenerativeAI</button>
+                        <button class="hashtag-tag" data-tag="#Gemini">#Gemini</button>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="drawer-actions">
+                    <button id="btn-copy-tweet" class="btn btn-secondary">
+                        <i data-lucide="copy"></i>
+                        <span>Copy Tweet</span>
+                    </button>
+                    <button id="btn-share-tweet" class="btn btn-twitter">
+                        <i data-lucide="twitter"></i>
+                        <span>Post to X</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast" style="display: none;">
+        <i data-lucide="check-circle" class="toast-icon"></i>
+        <span id="toast-message">Success!</span>
+    </div>
+
+    <!-- Initialize Lucide Icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+    <!-- Frontend logic JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
